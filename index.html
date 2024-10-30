@@ -1,0 +1,205 @@
+<html>
+<head>
+  <title>RADIO VISUALIZER</title>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="fm.png" />
+  <style>
+    html,body { margin: 0; width: 100%; height: 100%; }
+    html * { user-select: none;}
+    #root { cursor: pointer; }
+    .station { position: absolute; top: 60px; right: 60px; }
+    .logo { margin: 0; font-weight: 300; font-family: sans-serif; font-size: 42px; padding-right: 20px }
+    .controls { position: relative; z-index: 1; display: inline-block; width: 32px; }
+    .controls path { fill: currentColor; }
+    .audio-off { position: relative; left: -3px;  }
+    .audio-on svg { position: relative; width: 36px; top: 2px; }
+    .audio-on { display: none; }
+    .on .audio-off { display: none; }
+    .on .audio-on { display: block; }
+    canvas { position: relative; z-index: 0; }
+    @keyframes spin { from {transform:rotate(0deg) } to {transform:rotate(360deg) } }
+    .cursor { cursor: none; visibility: hidden; z-index: 2; position: absolute; margin-left: -25px; margin-top: -25px; width: 50px; height: 50px; animation-duration: 700ms; animation-iteration-count: infinite; animation-timing-function: linear; }
+    #root.loading .cursor { visibility: visible; animation-name: spin; }
+    </style>
+  <script>
+    const createNode = (options) => {
+      const node = document.createElement(options.tag ? options.tag : 'div');
+      if(options.className) node.setAttribute('class',options.className);
+      if(options.innerHTML) node.innerHTML = options.innerHTML;
+      if(options.attributes) Object.keys(options.attributes).forEach(key => node.setAttribute(key,options.attributes[key]) );
+      if(options.style) Object.keys(options.style).forEach(key => node.style[key] = options.style[key]);
+      if(options.root) options.root.appendChild(node);
+      return node;
+    }
+    const svg = {
+      audio_off: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" xml:space="preserve">
+        <path d="M29 30c-.3 0-.5-.1-.7-.3l-26-26c-.4-.4-.4-1 0-1.4s1-.4 1.4 0l26 26c.4.4.4 1 0 1.4-.2.2-.4.3-.7.3"/>
+        <path d="M27 28.4V3c0-.4-.2-.7-.5-.9s-.7-.2-1 0L13.7 9H7.6zM5.2 9.4c-.1.2-.2.4-.2.6v12c0 .6.4 1 1 1h7.7l11.8 6.9c.1 0 .2.1.2.1z"/>
+        </svg>`,
+      audio_on: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" xml:space="preserve">
+        <path d="M20.4 2.9c-.3-.2-.7-.1-1 .1l-9.7 7H3c-.6 0-1 .4-1 1v10c0 .6.4 1 1 1h6.7l9.7 7.1c.2.1.4.2.6.2s.3 0 .5-.1c.3-.2.5-.5.5-.9V3.8c0-.4-.2-.8-.6-.9m6.7 6.4c-.4-.4-1-.4-1.4 0s-.4 1 0 1.4C27.2 12.1 28 14 28 16s-.8 3.9-2.3 5.3c-.4.4-.4 1 0 1.4.2.2.5.3.7.3s.5-.1.7-.3C29 20.9 30 18.6 30 16s-1-4.9-2.9-6.7"/>
+        <path d="M24.7 12.7c-.4-.4-1-.4-1.4.1-.4.4-.3 1 .1 1.4.5.5.8 1.2.8 1.9s-.3 1.4-.8 1.9c-.4.4-.4 1-.1 1.4.2.2.5.3.7.3s.5-.1.7-.3c1-.9 1.5-2.1 1.5-3.3s-.6-2.6-1.5-3.4"/>
+        </svg>`,
+      spinner: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path opacity=".5" fill-rule="evenodd" clip-rule="evenodd" d="M12 19a7 7 0 1 0 0-14 7 7 0 0 0 0 14m0 3c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10" fill="currentColor"/>
+        <path d="M2 12C2 6.477 6.477 2 12 2v3a7 7 0 0 0-7 7z" fill="currentColor"/>
+        </svg>`,  
+    }
+    class App {
+      constructor(){
+        window.addEventListener('resize',this.handleResize.bind(this));
+        window.addEventListener('popstate',this.handlePopstate.bind(this));
+        document.addEventListener('DOMContentLoaded',this.init.bind(this));
+        document.addEventListener('click',this.handleDocumentClick.bind(this));
+        document.addEventListener('mousemove',this.handleMouseMove.bind(this));
+        document.addEventListener('touchmove',this.handleMouseMove.bind(this));
+        this.els = [];
+        this.stations = [
+          { slug: 'gaia-fm',            name: 'GAIA FM',            theme: { background: '#503431', color: '#e77431' }, url: `https://s2.stationplaylist.com:9000/gaiafm.aac` },
+          { slug: 'smooth-jazz-1025',   name: 'SMOOTH JAZZ',        theme: { background: '#4B0055', color: '#aa6eb9' }, url: `https://das-edge10-live365-dal03.cdnstream.com/a34543`},
+          { slug: 'equinoxe-radio',     name: 'EQUINOXE RADIO',     theme: { background: '#FFFFFF', color: '#000000' }, url: `https://listen.radioking.com/radio/39218/stream/76118`},
+          { slug: 'radio-monaco',       name: 'RADIO MONACO',       theme: { background: '#ce1126', color: '#FFFFFF' }, url: `https://radiomonaco.ice.infomaniak.ch/radiomonaco-128.mp3` },
+          { slug: 'q102',               name: 'Q102',               theme: { background: '#4d1b7b', color: '#ef4f91' }, url: `https://wg.cdn.tibus.net/Q10280s` },
+          { slug: 'япарадио',           name: 'ЯПАРАДИО',           theme: { background: '#000000', color: '#FFFFFF' }, url: `https://listen5.myradio24.com/94624` },
+          { slug: 'atmo-radio',         name: 'ATMO RADIO',         theme: { background: '#001F3F', color: '#6A9AB0' }, url: `https://listen10.myradio24.com/atmo`},
+          { slug: 'nature-radio-sleep', name: 'NATURE RADIO SLEEP', theme: { background: '#1A1A19', color: '#86ff5d' }, url: `https://stream.zeno.fm/kju0gtjeei3uv`},
+        ];
+        this.audio = this.createAudio();
+        const hash = decodeURIComponent(window.location.hash.substring(1));
+        const hash_index = hash ? this.stations.findIndex(station => station.slug === hash ) : 0;
+        this.station = hash_index !== -1 ? hash_index : 0;
+        this.current_station = this.stations[this.station];
+        window.history.replaceState(this.current_station.slug, `${this.current_station.name}`, `#${this.current_station.slug}`);
+      }
+      init(){
+        if(this.interval) cancelAnimationFrame(this.interval);
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.mid_x = this.width / 2;
+        this.mid_y = this.height / 2;
+        this.els.root = document.getElementById('root');
+        this.els.root.style.background = this.current_station.theme.background;
+        this.els.root.style.color = this.current_station.theme.color;
+        this.els.canvas = createNode({ root: this.els.root, tag: 'canvas', attributes: { width: this.width, height: this.height } });
+        this.els.station = createNode({ root: this.els.root, tag: 'div', className: 'station' });
+        this.els.logo = createNode({ root: this.els.station, tag: 'span', className: 'logo', innerHTML: this.current_station.name });
+        this.els.controls = createNode({ root: this.els.station, tag: 'span', className: 'controls' });
+        this.els.controls_audio_off = createNode({ root: this.els.controls, tag: 'span', className: 'audio-off', innerHTML: svg.audio_off });
+        this.els.controls_audio_on = createNode({ root: this.els.controls, tag: 'span', className: 'audio-on', innerHTML: svg.audio_on });
+        this.els.cursor = createNode({ root: this.els.root, tag: 'div', className: `cursor`, innerHTML: svg.spinner });
+        this.context = this.els.canvas.getContext('2d');
+        this.interval = window.requestAnimationFrame(this.render.bind(this));
+      }
+      handleMouseMove(event){
+        let x = !!event.touches ? event.touches[0].clientX : event.clientX;
+        let y = !!event.touches ? event.touches[0].clientY : event.clientY;
+        this.els.cursor.style.left = `${x}px`;
+        this.els.cursor.style.top = `${y}px`;
+      }
+      handlePopstate(event){
+        const direction = this.stations.findIndex(station => station.slug === event.state) - this.station;
+        this.handleChangeStation(direction);
+      }
+      handleResize(){
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.mid_x = this.width / 2;
+        this.mid_y = this.height / 2;
+        this.els.canvas.width = this.width;
+        this.els.canvas.height = this.height;
+      }
+      handleDocumentClick(event){
+        const on_audio_on = event.target.closest('.audio-on') !== null;
+        const on_cursor = event.target.closest('.cursor') !== null;
+        const audio_playing = !!(this.audio && this.audio.currentTime > 0 && !this.audio.paused && !this.audio.ended && this.audio.readyState > 2);
+        if(!this.audio.src){
+          this.els.root.classList.add('on');
+          this.handleChangeStation(0,true);
+        } else if(audio_playing && on_audio_on) {
+          this.els.root.classList.remove('on');
+          this.audio.pause();
+        } else if(!audio_playing && !on_cursor) {
+          this.els.root.classList.add('on');
+          this.audio.play();
+        } else if(this.audio) {
+          this.handleChangeStation(1,true);
+        }
+      }
+      handleChangeStation(direction,navigate=false){
+        const next = this.station + direction;
+        this.station = next >= this.stations.length ? 0 : next;
+        this.current_station = this.stations[this.station];
+        this.els.root.style.background = this.current_station.theme.background;
+        this.els.root.style.color = this.current_station.theme.color;
+        this.els.cursor.style.color = this.current_station.theme.color;
+        this.els.logo.innerHTML = this.current_station.name;
+        this.audio.src = this.current_station.url;
+        if(navigate) window.history.pushState(this.current_station.slug, `${this.current_station.name}`, `#${this.current_station.slug}`);
+      }
+      handleAudioLoading(){
+        this.els.root.classList.add('loading');
+        const static_buffer = this.audio.context.createBuffer(1, this.audio.context.sampleRate * 2, this.audio.context.sampleRate);
+        const static_buffer_data = static_buffer.getChannelData(0);
+        for (let i = 0; i < static_buffer_data.length; i++) static_buffer_data[i] = Math.random() * 0.02 - 0.01;
+        if(this.audio.static) this.audio.static.stop();
+        this.audio.static = this.audio.context.createBufferSource();
+        this.audio.static.loop = true;
+        this.audio.static.buffer = static_buffer;
+        this.audio.static.connect(this.audio.context.destination);
+        this.audio.static.connect(this.audio.analyser);
+        this.audio.static.start();
+      }
+      handleAudioReady(){
+        this.els.root.classList.remove('loading');
+        this.audio.static.stop();
+        this.audio.play();
+      }
+      createAudio(src){
+        const audio = new Audio();
+        audio.context = new AudioContext();
+        audio.analyser = audio.context.createAnalyser();
+        audio.source = audio.context.createMediaElementSource(audio);
+        audio.crossOrigin = 'anonymous';
+        audio.source.connect(audio.analyser);
+        audio.analyser.connect(audio.context.destination);
+        audio.analyser.fftSize = 2048;
+        audio.segments = Math.ceil(Math.sqrt(2048)/5)*5;
+        audio.data = new Uint8Array(audio.segments);
+        audio.volume = 0.3;
+        audio.addEventListener('loadstart',this.handleAudioLoading.bind(this));
+        audio.addEventListener('canplay',this.handleAudioReady.bind(this));
+        return audio;
+      }
+      drawAudio(){
+        if(!this.audio) return;
+        this.audio.analyser.getByteFrequencyData(this.audio.data);
+        let audio_data = Array.from(this.audio.data);
+        const height_adjust = this.height / (255 + 60);
+        this.context.lineWidth = 4;
+        this.context.strokeStyle = this.current_station.theme.color;
+        this.context.beginPath();
+        for(let i = 0; i < this.audio.segments; i++){
+          const cpx = (i * this.audio.segments);
+          const cpy = this.height - (audio_data[i] * height_adjust);
+          const cpy_to = this.height - (audio_data[i+1] * height_adjust);
+          const distance = cpy + (cpy_to - cpy) / 2;
+          const x = (cpx + this.audio.segments / 2);
+          const y = isNaN(distance) ? this.height : distance;
+          if(i === 0) this.context.moveTo(0, cpy);
+          if(i < this.audio.segments - 1) this.context.quadraticCurveTo(cpx, cpy, x, y);
+        }
+        this.context.stroke();
+      }
+      render(){
+        this.context.clearRect(0, 0, this.width, this.height);
+        this.drawAudio();
+        this.interval = window.requestAnimationFrame(this.render.bind(this));
+      }
+    }
+    const app = new App();
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>
