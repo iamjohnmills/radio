@@ -49,6 +49,7 @@
       constructor(){
         window.addEventListener('resize',this.handleResize.bind(this));
         window.addEventListener('popstate',this.handlePopstate.bind(this));
+        window.addEventListener('keydown',this.handleKeydown.bind(this));
         document.addEventListener('DOMContentLoaded',this.init.bind(this));
         document.addEventListener('click',this.handleDocumentClick.bind(this));
         document.addEventListener('mousemove',this.handleMouseMove.bind(this));
@@ -107,6 +108,10 @@
         this.mid_y = this.height / 2;
         this.els.canvas.width = this.width;
         this.els.canvas.height = this.height;
+      }
+      handleKeydown(event){
+        const volume_direction = event.code === 'ArrowUp' ? 0.05 : event.code === 'ArrowDown' ? -0.05 : 0;
+        this.audio.volume = this.audio.volume + volume_direction >= 1 ? 1 : this.audio.volume + volume_direction <= 0.1 ? 0.1 : this.audio.volume + volume_direction;
       }
       handleDocumentClick(event){
         const on_audio_on = event.target.closest('.audio-on') !== null;
