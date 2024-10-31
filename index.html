@@ -110,7 +110,7 @@
         this.els.canvas.height = this.height;
       }
       handleKeydown(event){
-        const volume_direction = event.code === 'ArrowUp' ? 0.05 : event.code === 'ArrowDown' ? -0.05 : 0;
+        const volume_direction = event.code === 'ArrowUp' ? 0.2 : event.code === 'ArrowDown' ? -0.2 : 0;
         this.audio.volume = this.audio.volume + volume_direction >= 1 ? 1 : this.audio.volume + volume_direction <= 0.1 ? 0.1 : this.audio.volume + volume_direction;
       }
       handleDocumentClick(event){
