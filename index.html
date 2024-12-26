@@ -56,14 +56,14 @@
         document.addEventListener('touchmove',this.handleMouseMove.bind(this));
         this.els = [];
         this.stations = [
-          { slug: 'gaia-fm',            name: 'GAIA FM',            theme: { background: '#503431', color: '#e77431' }, url: `https://s2.stationplaylist.com:9000/gaiafm.aac` },
-          { slug: 'smooth-jazz-1025',   name: 'SMOOTH JAZZ',        theme: { background: '#4B0055', color: '#aa6eb9' }, url: `https://das-edge10-live365-dal03.cdnstream.com/a34543`},
-          { slug: 'equinoxe-radio',     name: 'EQUINOXE RADIO',     theme: { background: '#000000', color: '#FFFF00' }, url: `https://listen.radioking.com/radio/39218/stream/76118`},
-          { slug: 'radio-monaco',       name: 'RADIO MONACO',       theme: { background: '#ce1126', color: '#FFFFFF' }, url: `https://radiomonaco.ice.infomaniak.ch/radiomonaco-128.mp3` },
-          { slug: 'q102',               name: 'Q102',               theme: { background: '#4d1b7b', color: '#ef4f91' }, url: `https://wg.cdn.tibus.net/Q10280s` },
-          { slug: 'япарадио',           name: 'ЯПАРАДИО',           theme: { background: '#000000', color: '#FFFFFF' }, url: `https://listen5.myradio24.com/94624` },
-          { slug: 'atmo-radio',         name: 'ATMO RADIO',         theme: { background: '#001F3F', color: '#6A9AB0' }, url: `https://listen10.myradio24.com/atmo`},
-          { slug: 'nature-radio-sleep', name: 'NATURE RADIO SLEEP', theme: { background: '#1A1A19', color: '#86ff5d' }, url: `https://stream.zeno.fm/kju0gtjeei3uv`},
+          { slug: 'gaia-fm', name: 'GAIA FM', theme: { background: '#503431', color: '#e77431' }, url: `https://s2.stationplaylist.com:9000/gaiafm.aac` },
+          { slug: 'smooth-jazz-1025', name: 'SMOOTH JAZZ', theme: { background: '#45B3E0', color: '#C9E9F6' }, url: `https://das-edge10-live365-dal03.cdnstream.com/a34543`},
+          { slug: 'breakbeat96', name: 'DFM BREAKBEAT', theme: { background: '#041738', color: '#8A63DB' }, url: `https://dfm-breakbeat.hostingradio.ru/breakbeat96.aacp` },          
+          { slug: 'radio-monaco', name: 'RADIO MONACO', theme: { background: '#ce1126', color: '#FFFFFF' }, url: `https://radiomonaco.ice.infomaniak.ch/radiomonaco-128.mp3` },
+          { slug: 'q102', name: 'Q102', theme: { background: '#391349', color: '#FC3777' }, url: `https://wg.cdn.tibus.net/Q10280s` },
+          { slug: 'япарадио', name: 'ЯПАРАДИО', theme: { background: '#000000', color: '#FFFFFF' }, url: `https://listen5.myradio24.com/94624` },
+          { slug: 'atmo-radio', name: 'ATMO RADIO', theme: { background: '#001F3F', color: '#6A9AB0' }, url: `https://listen10.myradio24.com/atmo`},
+          { slug: 'cladrite', name: 'CLADRITE RADIO', theme: { background: '#595756', color: '#B9AEA0' }, url: `https://das-edge17-live365-dal02.cdnstream.com/a43564` },
         ];
         this.audio = this.createAudio();
         const hash = decodeURIComponent(window.location.hash.substring(1));
