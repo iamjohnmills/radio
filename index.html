@@ -16,17 +16,27 @@
     .audio-on { display: none; }
     .on .audio-off { display: none; }
     .on .audio-on { display: block; }
-    canvas { position: relative; z-index: 0; }
     @keyframes spin { from {transform:rotate(0deg) } to {transform:rotate(360deg) } }
     .cursor { cursor: none; visibility: hidden; z-index: 2; position: absolute; margin-left: -25px; margin-top: -25px; width: 50px; height: 50px; animation-duration: 700ms; animation-iteration-count: infinite; animation-timing-function: linear; }
     #root.loading .cursor { visibility: visible; animation-name: spin; }
-    </style>
+    svg { display: block; }
+    path.audio { stroke-width: 5; fill: none; }
+
+</style>
   <script>
     const createNode = (options) => {
       const node = document.createElement(options.tag ? options.tag : 'div');
       if(options.className) node.setAttribute('class',options.className);
       if(options.innerHTML) node.innerHTML = options.innerHTML;
       if(options.attributes) Object.keys(options.attributes).forEach(key => node.setAttribute(key,options.attributes[key]) );
+      if(options.style) Object.keys(options.style).forEach(key => node.style[key] = options.style[key]);
+      if(options.root) options.root.appendChild(node);
+      return node;
+    }
+    const createNodeSVG = (options) => {
+      const node = document.createElementNS('http://www.w3.org/2000/svg',options.tag);
+      if(options.className) node.setAttributeNS(null,'class',options.className);
+      if(options.attributes) Object.keys(options.attributes).forEach(key => node.setAttributeNS(null,key,options.attributes[key]) );
       if(options.style) Object.keys(options.style).forEach(key => node.style[key] = options.style[key]);
       if(options.root) options.root.appendChild(node);
       return node;
@@ -76,19 +86,19 @@
         if(this.interval) cancelAnimationFrame(this.interval);
         this.width = window.innerWidth;
         this.height = window.innerHeight;
-        this.mid_x = this.width / 2;
         this.mid_y = this.height / 2;
         this.els.root = document.getElementById('root');
         this.els.root.style.background = this.current_station.theme.background;
         this.els.root.style.color = this.current_station.theme.color;
-        this.els.canvas = createNode({ root: this.els.root, tag: 'canvas', attributes: { width: this.width, height: this.height } });
         this.els.station = createNode({ root: this.els.root, tag: 'div', className: 'station' });
         this.els.logo = createNode({ root: this.els.station, tag: 'span', className: 'logo', innerHTML: this.current_station.name });
         this.els.controls = createNode({ root: this.els.station, tag: 'span', className: 'controls' });
         this.els.controls_audio_off = createNode({ root: this.els.controls, tag: 'span', className: 'audio-off', innerHTML: svg.audio_off });
         this.els.controls_audio_on = createNode({ root: this.els.controls, tag: 'span', className: 'audio-on', innerHTML: svg.audio_on });
         this.els.cursor = createNode({ root: this.els.root, tag: 'div', className: `cursor`, innerHTML: svg.spinner });
-        this.context = this.els.canvas.getContext('2d');
+        this.els.svg_audio = createNodeSVG({ root: this.els.root, tag: 'svg' });
+        this.els.path_audio = createNodeSVG({ root: this.els.svg_audio, tag: 'path', className: 'audio' });
+        this.initializeRender();
         this.interval = window.requestAnimationFrame(this.render.bind(this));
       }
       handleMouseMove(event){
@@ -102,12 +112,7 @@
         this.handleChangeStation(direction);
       }
       handleResize(){
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
-        this.mid_x = this.width / 2;
-        this.mid_y = this.height / 2;
-        this.els.canvas.width = this.width;
-        this.els.canvas.height = this.height;
+        this.initializeRender();
       }
       handleKeydown(event){
         const volume_direction = event.code === 'ArrowUp' ? 0.2 : event.code === 'ArrowDown' ? -0.2 : 0;
@@ -159,6 +164,15 @@
         this.audio.static.stop();
         this.audio.play();
       }
+      initializeRender(){
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.mid_y = this.height / 2;
+        this.height_adjust = this.height / (255 + 60);
+        this.els.svg_audio.setAttributeNS(null,'viewBox',`0 0 ${this.width} ${this.height}`);
+        this.els.svg_audio.setAttributeNS(null,'width', this.width);
+        this.els.svg_audio.setAttributeNS(null,'height', this.height);
+      }
       createAudio(src){
         const audio = new Audio();
         audio.context = new AudioContext();
@@ -168,7 +182,7 @@
         audio.source.connect(audio.analyser);
         audio.analyser.connect(audio.context.destination);
         audio.analyser.fftSize = 2048;
-        audio.segments = Math.ceil(Math.sqrt(2048)/5)*5;
+        audio.segments = 25;
         audio.data = new Uint8Array(audio.segments);
         audio.volume = 0.3;
         audio.addEventListener('loadstart',this.handleAudioLoading.bind(this));
@@ -179,24 +193,24 @@
         if(!this.audio) return;
         this.audio.analyser.getByteFrequencyData(this.audio.data);
         let audio_data = Array.from(this.audio.data);
-        const height_adjust = this.height / (255 + 60);
-        this.context.lineWidth = 4;
-        this.context.strokeStyle = this.current_station.theme.color;
-        this.context.beginPath();
-        for(let i = 0; i < this.audio.segments; i++){
-          const cpx = (i * this.audio.segments);
-          const cpy = this.height - (audio_data[i] * height_adjust);
-          const cpy_to = this.height - (audio_data[i+1] * height_adjust);
+        const segments = audio_data.length - 2;
+        const grid_x = this.width / segments;
+        const path = audio_data.reduce((str,item,i,items) => {
+          // https://docs.aspose.com/svg/net/drawing-basics/svg-path-data/
+          const from = audio_data[i];
+          const to = audio_data[i+1] ? audio_data[i+1] : 1;
+          const cpx = i * grid_x;
+          const cpy = this.height - (from * this.height_adjust);
+          const cpy_to = this.height - (to * this.height_adjust);
           const distance = cpy + (cpy_to - cpy) / 2;
-          const x = (cpx + this.audio.segments / 2);
+          const x = (cpx + grid_x / 2);
           const y = isNaN(distance) ? this.height : distance;
-          if(i === 0) this.context.moveTo(0, cpy);
-          if(i < this.audio.segments - 1) this.context.quadraticCurveTo(cpx, cpy, x, y);
-        }
-        this.context.stroke();
+          return `${str} ${i === 0 ? `M 0 ${cpy}` : ``} ${i <= segments ? `Q ${cpx} ${cpy} ${x} ${y}` : ``}`;
+        },``);
+        this.els.path_audio.setAttribute('d', path );
+        this.els.path_audio.style.stroke = this.current_station.theme.color;
       }
       render(){
-        this.context.clearRect(0, 0, this.width, this.height);
         this.drawAudio();
         this.interval = window.requestAnimationFrame(this.render.bind(this));
       }
