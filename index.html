@@ -93,6 +93,7 @@
         this.height = window.innerHeight;
         this.mid_y = this.height / 2;
         this.els.root = document.getElementById('root');
+        this.els.root.innerHTML = ``;
         this.els.root.style.background = this.current_station.theme.background;
         this.els.root.style.color = this.current_station.theme.color;
         this.els.station = createNode({ root: this.els.root, tag: 'div', className: 'station' });
@@ -113,6 +114,7 @@
         this.els.cursor.style.top = `${y}px`;
       }
       handlePopstate(event){
+        if(!event.state) return;
         const direction = this.stations.findIndex(station => station.slug === event.state) - this.station;
         this.handleChangeStation(direction);
       }
