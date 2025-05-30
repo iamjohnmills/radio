@@ -58,6 +58,7 @@
     class App {
       constructor(){
         window.addEventListener('resize',this.handleResize.bind(this));
+        window.addEventListener('popstate',this.handlePopstate.bind(this));
         window.addEventListener('keydown',this.handleKeydown.bind(this));
         document.addEventListener('DOMContentLoaded',this.init.bind(this));
         document.addEventListener('click',this.handleDocumentClick.bind(this));
@@ -110,6 +111,10 @@
         let y = !!event.touches ? event.touches[0].clientY : event.clientY;
         this.els.cursor.style.left = `${x}px`;
         this.els.cursor.style.top = `${y}px`;
+      }
+      handlePopstate(event){
+        const direction = this.stations.findIndex(station => station.slug === event.state) - this.station;
+        this.handleChangeStation(direction);
       }
       handleResize(){
         this.initializeRender();
