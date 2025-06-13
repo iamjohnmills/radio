@@ -135,7 +135,7 @@
           this.audio.pause();
         } else if(!audio_playing && !on_cursor) {
           this.els.root.classList.add('on');
-          this.audio.play();
+          this.handleChangeStation(0,true);
         } else if(this.audio) {
           this.handleChangeStation(1,true);
         }
