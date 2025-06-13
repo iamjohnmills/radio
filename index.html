@@ -4,24 +4,23 @@
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="fm.png" />
   <style>
-    html,body { margin: 0; width: 100%; height: 100%; }
+    html,body { margin: 0; width: 100%; height: 100%; font-family: sans-serif; }
     html * { user-select: none;}
-    #root { cursor: pointer; }
+    #root { cursor: pointer; background-color: var(--background); color: var(--color); }
     .station { position: absolute; top: 60px; right: 60px; }
-    .logo { margin: 0; font-weight: 300; font-family: sans-serif; font-size: 42px; padding-right: 20px }
+    .logo { margin: 0; font-weight: 300; font-size: 42px; padding-right: 20px }
     .controls { position: relative; z-index: 1; display: inline-block; width: 32px; }
-    .controls path { fill: currentColor; }
+    .controls path { fill: var(--color); }
     .audio-off { position: relative; left: -3px;  }
     .audio-on svg { position: relative; width: 36px; top: 2px; }
     .audio-on { display: none; }
     .on .audio-off { display: none; }
     .on .audio-on { display: block; }
     @keyframes spin { from {transform:rotate(0deg) } to {transform:rotate(360deg) } }
-    .cursor { cursor: none; visibility: hidden; z-index: 2; position: absolute; margin-left: -25px; margin-top: -25px; width: 50px; height: 50px; animation-duration: 700ms; animation-iteration-count: infinite; animation-timing-function: linear; }
+    .cursor { color: var(--color); cursor: none; visibility: hidden; z-index: 2; position: absolute; margin-left: -25px; margin-top: -25px; width: 50px; height: 50px; animation-duration: 700ms; animation-iteration-count: infinite; animation-timing-function: linear; }
     #root.loading .cursor { visibility: visible; animation-name: spin; }
     svg { display: block; }
-    path.audio { stroke-width: 5; fill: none; }
-
+    path.audio { stroke-width: 5; fill: none; stroke: var(--color); }
 </style>
   <script>
     const createNode = (options) => {
@@ -78,8 +77,6 @@
           { slug: 'cladrite', name: 'CLADRITE RADIO', theme: { background: '#595756', color: '#B9AEA0' }, url: `https://das-edge17-live365-dal02.cdnstream.com/a43564` },
           { slug: 'wbur', name: 'WBUR BOSTON', theme: { background: '#FFD900', color: '#3E3937' }, url: `https://fm909.wbur.org/wbur_www` },
           { slug: 'yellowstone', name: 'YELLOWSTONE RADIO', theme: { background: '#2D4F9D', color: '#F7D530' }, url: `https://ypr.streamguys1.com/live?uuid=trnt0llac`},
-
-          
         ];
         this.audio = this.createAudio();
         const hash = decodeURIComponent(window.location.hash.substring(1));
@@ -95,8 +92,6 @@
         this.mid_y = this.height / 2;
         this.els.root = document.getElementById('root');
         this.els.root.innerHTML = ``;
-        this.els.root.style.background = this.current_station.theme.background;
-        this.els.root.style.color = this.current_station.theme.color;
         this.els.station = createNode({ root: this.els.root, tag: 'div', className: 'station' });
         this.els.logo = createNode({ root: this.els.station, tag: 'span', className: 'logo', innerHTML: this.current_station.name });
         this.els.controls = createNode({ root: this.els.station, tag: 'span', className: 'controls' });
@@ -106,6 +101,7 @@
         this.els.svg_audio = createNodeSVG({ root: this.els.root, tag: 'svg' });
         this.els.path_audio = createNodeSVG({ root: this.els.svg_audio, tag: 'path', className: 'audio' });
         this.initializeRender();
+        this.setTheme();
         this.interval = window.requestAnimationFrame(this.render.bind(this));
       }
       handleMouseMove(event){
@@ -130,6 +126,7 @@
         const on_audio_on = event.target.closest('.audio-on') !== null;
         const on_cursor = event.target.closest('.cursor') !== null;
         const audio_playing = !!(this.audio && this.audio.currentTime > 0 && !this.audio.paused && !this.audio.ended && this.audio.readyState > 2);
+        const el_preset = event.target.closest('.preset');
         if(!this.audio.src){
           this.els.root.classList.add('on');
           this.handleChangeStation(0,true);
@@ -147,9 +144,7 @@
         const next = this.station + direction;
         this.station = next >= this.stations.length ? 0 : next;
         this.current_station = this.stations[this.station];
-        this.els.root.style.background = this.current_station.theme.background;
-        this.els.root.style.color = this.current_station.theme.color;
-        this.els.cursor.style.color = this.current_station.theme.color;
+        this.setTheme();
         this.els.logo.innerHTML = this.current_station.name;
         this.audio.src = this.current_station.url;
         if(navigate) window.history.pushState(this.current_station.slug, `${this.current_station.name}`, `#${this.current_station.slug}`);
@@ -171,6 +166,14 @@
         this.els.root.classList.remove('loading');
         this.audio.static.stop();
         this.audio.play();
+      }
+      setTheme(){
+        this.els.root.style.setProperty('--color',this.current_station.theme.color);
+        this.els.root.style.setProperty('--background',this.current_station.theme.background);
+        const el_preset_active = document.querySelector(`.preset.active:not([data-slug="${this.current_station.slug}"])`);
+        if(el_preset_active) el_preset_active.classList.remove('active');
+        const el_preset = document.querySelector(`.preset[data-slug="${this.current_station.slug}"]`);
+        if(el_preset) el_preset.classList.add('active');
       }
       initializeRender(){
         this.width = window.innerWidth;
@@ -216,7 +219,6 @@
           return `${str} ${i === 0 ? `M 0 ${cpy}` : ``} ${i <= segments ? `Q ${cpx} ${cpy} ${x} ${y}` : ``}`;
         },``);
         this.els.path_audio.setAttribute('d', path );
-        this.els.path_audio.style.stroke = this.current_station.theme.color;
       }
       render(){
         this.drawAudio();
