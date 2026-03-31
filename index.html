@@ -7,12 +7,12 @@
     html,body { margin: 0; width: 100%; height: 100%; font-family: sans-serif; overflow: hidden; }
     html * { user-select: none;}
     #root { cursor: pointer; background-color: var(--background); color: var(--color); }
-    .station { position: absolute; top: 60px; right: 60px; }
+    .station { position: absolute; top: 60px; right: 60px; display: flex; align-items: center; }
     .logo { margin: 0; font-weight: 300; font-size: 42px; padding-right: 20px }
-    .controls { position: relative; z-index: 1; display: inline-block; width: 32px; }
+    .controls { position: relative; z-index: 1; display: block; width: 32px; }
     .controls path { fill: var(--color); }
-    .audio-off { position: relative; left: -3px;  }
-    .audio-on svg { position: relative; width: 36px; top: 2px; }
+    .audio-off { position: relative; left: -3px; }
+    .audio-on svg { position: relative; width: 36px; }
     .audio-on { display: none; }
     .on .audio-off { display: none; }
     .on .audio-on { display: block; }
@@ -151,8 +151,26 @@
         this.setTheme();
         this.els.logo.innerHTML = this.current_station.name;
         this.audio.src = this.current_station.url;
+        // this.fetchAudioStream(this.current_station.url)
         if(navigate) window.history.pushState(this.current_station.slug, `${this.current_station.name}`, `#${this.current_station.slug}`);
       }
+      // async fetchAudioStream(url){
+      //   await this.audio.context.resume();
+      //   const response = await fetch(url);
+      //   const reader = response.body.getReader();
+      //   let nextStartTime = 0;
+      //   while(true) {
+      //     const {done,value} = await reader.read();
+      //     if(done) break;
+      //     const buffer = await this.audio.context.decodeAudioData(value.buffer);
+      //     if(this.audio.test_source) this.audio.test_source.stop();
+      //     this.audio.test_source = this.audio.context.createBufferSource();
+      //     this.audio.test_source.buffer = buffer;
+      //     this.audio.test_source.connect(this.audio.context.destination);
+      //     this.audio.test_source.connect(this.audio.analyser);
+      //     this.audio.test_source.start();
+      //   }
+      // }
       handleAudioLoading(){
         this.els.root.classList.add('loading');
         const static_buffer = this.audio.context.createBuffer(1, this.audio.context.sampleRate * 2, this.audio.context.sampleRate);
