@@ -21,7 +21,7 @@
     #root.loading .cursor { visibility: visible; animation-name: spin; }
     svg { display: block; }
     path.audio { stroke-width: 5; fill: none; stroke: var(--color); }
-</style>
+  </style>
   <script>
     const createNode = (options) => {
       const node = document.createElement(options.tag ? options.tag : 'div');
@@ -68,13 +68,13 @@
           { slug: 'gaia-fm', name: 'GAIA FM', theme: { background: '#503431', color: '#e77431' }, url: `https://s2.stationplaylist.com:9000/gaiafm.aac` },
           { slug: 'wmse-917', name: '91.7 WMSE', theme: { background: '#000', color: '#FC3501' }, url: `https://wmse.streamguys1.com/wmselivemp3`},
           { slug: '889', name: '88.9 RADIO MKE', theme: { background: '#1F2527', color: '#F7991C' }, url: `https://wyms.streamguys1.com/live?platform=NPR&uuid=1x2uzwqim`},         
-          { slug: 'breakbeat96', source: 'https://dfm.ru/', name: 'DFM BREAKBEAT', theme: { background: '#041738', color: '#8A63DB' }, url: `https://dfm-breakbeat.hostingradio.ru/breakbeat96.aacp` },          
+          { slug: 'breakbeat96', source: 'https://dfm.ru/', name: 'DFM BREAKBEAT', theme: { background: '#041738', color: '#8A63DB' }, url: `https://dfm-breakbeat.hostingradio.ru/breakbeat96.aacp` },
           { slug: 'radio-monaco', name: 'RADIO MONACO', theme: { background: '#ce1126', color: '#FFFFFF' }, url: `https://radiomonaco.ice.infomaniak.ch/radiomonaco-128.mp3` },
-          // { slug: 'япарадио', name: 'ЯПАРАДИО', theme: { background: '#000000', color: '#FFFFFF' }, url: `https://listen5.myradio24.com/94624` },
           { slug: 'atmo-radio', name: 'ATMO RADIO', theme: { background: '#001F3F', color: '#6A9AB0' }, url: `https://listen10.myradio24.com/atmo`},
-          { slug: 'cladrite', name: 'CLADRITE RADIO', theme: { background: '#595756', color: '#B9AEA0' }, url: `https://das-edge17-live365-dal02.cdnstream.com/a43564` },
+          { slug: 'cladrite', name: 'CLADRITE RADIO', theme: { background: '#595756', color: '#B9AEA0' }, url: `https://das-edge63-live365-dal03.cdnstream.com/a43564` },
           { slug: 'monocle', name: 'MONOCLE RADIO', theme: { background: '#000000', color: '#FFC502' }, url: `https://27753.live.streamtheworld.com/MONOCLE_24AAC.aac`},
           { slug: 'yellowstone', name: 'YELLOWSTONE RADIO', theme: { background: '#273726', color: '#aab682' }, url: `https://ypr.streamguys1.com/live-aac`},
+          // 
           // { slug: 'npr', name: 'NPR', theme: { background: '#273726', color: '#aab682' }, url: `https://pd.npr.org/anon.npr-mp3/npr/news/newscast.mp3`},
           // { slug: 'q102', name: 'Q102', theme: { background: '#391349', color: '#FC3777' }, url: `https://live.onic.ie/stream-80s` },
           // { slug: 'celtic-christmas', name: 'CELTIC CHRISTMAS', theme: { background: '#236644', color: '#FF3213' }, url: `http://janus.cdnstream.com:5400/autodj` },
@@ -130,7 +130,6 @@
         const on_audio_on = event.target.closest('.audio-on') !== null;
         const on_cursor = event.target.closest('.cursor') !== null;
         const audio_playing = !!(this.audio && this.audio.currentTime > 0 && !this.audio.paused && !this.audio.ended && this.audio.readyState > 2);
-        const el_preset = event.target.closest('.preset');
         if(!this.audio.src){
           this.els.root.classList.add('on');
           this.handleChangeStation(0,true);
@@ -144,33 +143,15 @@
           this.handleChangeStation(1,true);
         }
       }
-      handleChangeStation(direction,navigate=false){
+      async handleChangeStation(direction,navigate=false){
         const next = this.station + direction;
         this.station = next >= this.stations.length ? 0 : next;
         this.current_station = this.stations[this.station];
         this.setTheme();
         this.els.logo.innerHTML = this.current_station.name;
         this.audio.src = this.current_station.url;
-        // this.fetchAudioStream(this.current_station.url)
         if(navigate) window.history.pushState(this.current_station.slug, `${this.current_station.name}`, `#${this.current_station.slug}`);
       }
-      // async fetchAudioStream(url){
-      //   await this.audio.context.resume();
-      //   const response = await fetch(url);
-      //   const reader = response.body.getReader();
-      //   let nextStartTime = 0;
-      //   while(true) {
-      //     const {done,value} = await reader.read();
-      //     if(done) break;
-      //     const buffer = await this.audio.context.decodeAudioData(value.buffer);
-      //     if(this.audio.test_source) this.audio.test_source.stop();
-      //     this.audio.test_source = this.audio.context.createBufferSource();
-      //     this.audio.test_source.buffer = buffer;
-      //     this.audio.test_source.connect(this.audio.context.destination);
-      //     this.audio.test_source.connect(this.audio.analyser);
-      //     this.audio.test_source.start();
-      //   }
-      // }
       handleAudioLoading(){
         this.els.root.classList.add('loading');
         const static_buffer = this.audio.context.createBuffer(1, this.audio.context.sampleRate * 2, this.audio.context.sampleRate);
@@ -226,6 +207,7 @@
         if(!this.audio) return;
         this.audio.analyser.getByteFrequencyData(this.audio.data);
         let audio_data = Array.from(this.audio.data);
+        // console.log(audio_data)
         const segments = audio_data.length - 2;
         const grid_x = this.width / segments;
         const path = audio_data.reduce((str,item,i,items) => {
